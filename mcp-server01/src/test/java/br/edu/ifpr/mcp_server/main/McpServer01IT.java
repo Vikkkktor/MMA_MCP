@@ -170,5 +170,34 @@ class McpServer01IT {
                   tool.inputSchema().get("required")
           );
       }
+      
+      @Test
+      void deveDisponibilizarObterHistoricoLutas() {
 
+          ListToolsResult result = client.listTools();
+
+          Tool tool = result.tools().stream()
+                  .filter(item ->
+                          "obter_historico_lutas".equals(item.name())
+                  )
+                  .findFirst()
+                  .orElse(null);
+
+          assertNotNull(
+                  tool,
+                  "A ferramenta obter_historico_lutas não foi encontrada."
+          );
+
+          assertNotNull(tool.description());
+          assertNotNull(tool.inputSchema());
+
+          assertTrue(
+                  tool.inputSchema().containsKey("properties")
+          );
+
+          assertEquals(
+                  List.of("fighter_id"),
+                  tool.inputSchema().get("required")
+          );
+      }
 }

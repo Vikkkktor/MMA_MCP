@@ -1,4 +1,3 @@
-
 package br.edu.ifpr.mcp_server.Service;
 
 import java.io.IOException;
@@ -7,6 +6,8 @@ import java.util.Objects;
 
 import br.edu.ifpr.mcp_server.api.FighterApiClient;
 import br.edu.ifpr.mcp_server.dto.FighterSearchResult;
+import br.edu.ifpr.mcp_server.dto.FighterProfile;
+
 
 public class FighterService {
 
@@ -55,5 +56,25 @@ public class FighterService {
         }
 
         return fighterApiClient.searchFighters(name.trim());
+    }
+    
+    public FighterProfile getFighterProfile(String fighterId)
+            throws IOException, InterruptedException {
+
+        if (fighterId == null || fighterId.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Informe o identificador do lutador."
+            );
+        }
+
+        if (fighterApiClient == null) {
+            throw new IllegalStateException(
+                    "A integração com a FighterAPI não está configurada. "
+                    + "Defina a variável de ambiente "
+                    + API_KEY_ENVIRONMENT_VARIABLE + "."
+            );
+        }
+
+        return fighterApiClient.getFighter(fighterId.trim());
     }
 }

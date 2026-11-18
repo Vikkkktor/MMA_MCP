@@ -12,6 +12,7 @@ import br.edu.ifpr.mcp_server.mcp.utils.McpToolDefinition;
 import br.edu.ifpr.mcp_server.Service.EventService;
 import br.edu.ifpr.mcp_server.mcp.tools.ListarEventosTool;
 import br.edu.ifpr.mcp_server.mcp.tools.ObterCardEventoTool;
+import br.edu.ifpr.mcp_server.mcp.tools.ObterHistoricoLutasTool;
 
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 import io.modelcontextprotocol.server.McpServer;
@@ -33,12 +34,15 @@ public class McpServer01SyncStdio {
                           SyncSpecification<SingleSessionSyncSpecification> mcp)
                 throws Exception {
       
-      EventService eventService = new EventService();
+	  FighterService fighterService = new FighterService();
+	  EventService eventService = new EventService();
+	   
       // cria a lista de ferramentas disponíveis no servidor...
       List<McpToolDefinition> tools = List.of(
-            new BuscarLutadorTool(new FighterService()),
-            new ListarEventosTool(new EventService()),
-            new ObterCardEventoTool(eventService)
+            new BuscarLutadorTool(fighterService),
+            new ListarEventosTool(eventService),
+            new ObterCardEventoTool(eventService),
+            new ObterHistoricoLutasTool(fighterService)
             );
       // ...para cada ferramenta, executa seu registro para posterior execução
       for (McpToolDefinition tool : tools)
@@ -95,18 +99,5 @@ public class McpServer01SyncStdio {
 
    public static void main(String[] args) throws Exception {
       new McpServer01SyncStdio();
-//      McpServer01SyncStdio p = new McpServer01SyncStdio();
-//
-//      Runtime.getRuntime().addShutdownHook(new Thread() {
-//         public void run() {
-//            synchronized (p) {
-//               p.notify();
-//            }
-//         }
-//      });
-//      synchronized (p) {
-//         p.wait();
-//         server.closeGracefully();
-//      }
    }
 }
