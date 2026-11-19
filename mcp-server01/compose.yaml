@@ -1,22 +1,22 @@
+
 services:
   mcp-inspector:
     build:
       context: .
       dockerfile: Dockerfile
-
     container_name: mcp-inspector
-
     environment:
       FIGHTERAPI_MMA_KEY: ${FIGHTERAPI_MMA_KEY}
       CITOAPI_MMA_KEY: ${CITOAPI_MMA_KEY}
-
     ports:
       - "127.0.0.1:6274:6274"
-
     volumes:
       - ./server:/opt/mcp/server:ro
-
     command:
+      - -e
+      - FIGHTERAPI_MMA_KEY=${FIGHTERAPI_MMA_KEY}
+      - -e
+      - CITOAPI_MMA_KEY=${CITOAPI_MMA_KEY}
       - java
       - -jar
       - /opt/mcp/server/mcp_server01_server.jar
