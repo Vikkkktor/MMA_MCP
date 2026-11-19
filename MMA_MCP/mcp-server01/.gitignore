@@ -1,1 +1,5 @@
 /target/
+/server/
+/.env
+/dependency-reduced-pom.xml
+*.log
