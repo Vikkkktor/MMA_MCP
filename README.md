@@ -35,6 +35,16 @@ Pesquisa lutadores pelo nome ou parte do nome.
 - Data da última luta;
 - Quantidade de lutas no UFC.
 
+**Possíveis resultados e erros:**
+
+- Lista de lutadores encontrados;
+- Nenhum lutador encontrado;
+- Nome não informado ou vazio;
+- Chave de API inválida ou ausente;
+- Créditos insuficientes;
+- Limite de requisições excedido;
+- Falha de comunicação com a FighterAPI.
+
 **API utilizada:** FighterAPI.
 
 ### listar_eventos
@@ -59,6 +69,17 @@ Consulta eventos de MMA e permite filtrar os próximos eventos.
 - Disponibilidade de estatísticas;
 - Informações de paginação.
 
+**Possíveis resultados e erros:**
+
+- Lista de eventos encontrados;
+- Nenhum evento encontrado;
+- Nenhum próximo evento disponível;
+- Página ou limite inválido;
+- Parâmetros booleanos inválidos;
+- Chave de API inválida ou ausente;
+- Limite de requisições excedido;
+- Falha de comunicação com a Cito API.
+
 **API utilizada:** Cito API.
 
 ### obter_card_evento
@@ -76,6 +97,16 @@ da ferramenta listar_eventos.
 
 Retorna os dados das lutas disponibilizados pela API, mantendo
 a resposta JSON original.
+
+**Possíveis resultados e erros:**
+
+- Card do evento encontrado;
+- Evento sem lutas disponíveis;
+- Identificador não informado ou vazio;
+- Evento não encontrado;
+- Chave de API inválida ou ausente;
+- Limite de requisições excedido;
+- Falha de comunicação com a Cito API.
 
 **API utilizada:** Cito API.
 
@@ -101,8 +132,16 @@ O ID pode ser obtido através da ferramenta buscar_lutador.
 - Round final;
 - Tempo final.
 
-A ferramenta utiliza o histórico recente disponibilizado pela
-FighterAPI, não necessariamente toda a carreira do atleta.
+**Possíveis resultados e erros:**
+
+- Histórico de lutas encontrado;
+- Nenhuma luta recente encontrada;
+- Identificador não informado ou vazio;
+- Perfil do lutador não encontrado;
+- Chave de API inválida ou ausente;
+- Créditos insuficientes;
+- Limite de requisições excedido;
+- Falha de comunicação com a FighterAPI.
 
 **API utilizada:** FighterAPI.
 
@@ -228,8 +267,6 @@ Variável de ambiente:
 `CITOAPI_MMA_KEY`
 
 Website para cadastro: https://citoapi.com/docs/api/ufc/ 
-(A cito API possui uma chave de demonstração, permitindo 50 requisições por dia e não sendo necessário o cadastro. pk_demo_cito_live_a06c129e0a9ce1c39c3035bd187541c4)
-
 
 As credenciais devem ser fornecidas através de variáveis de
 ambiente. Nunca devem ser inseridas diretamente no código-fonte
@@ -246,6 +283,161 @@ ou publicadas no repositório.
 - Docker Engine;
 - Docker Compose;
 - Chaves de acesso às APIs utilizadas.
+
+## 6. Compilação do servidor MCP
+
+Na raiz do projeto Maven (`mcp-server01`), execute:
+
+```bash
+mvn clean verify -Pserver
+```
+
+O comando realiza a compilação, executa os testes e prepara
+o pacote executável do servidor.
+
+Após a conclusão, será criado:
+
+```text
+server/
+├── mcp_server01_server.jar
+└── libs/
+```
+
+O diretório `libs` possuei as dependências necessárias para a execução
+do servidor.
+
+---
+
+## 7. Compilação do cliente MCP
+
+Após gerar o servidor, compile o cliente:
+
+```bash
+mvn clean package -Pclient -DskipTests
+```
+
+Será gerado:
+
+```text
+target/
+└── dist-client/
+    ├── mcp_server01_client.jar
+    └── libs/
+```
+
+### Executando o cliente
+
+Entre no diretório do cliente:
+
+```bash
+cd target/dist-client
+```
+
+Execute:
+
+```bash
+java -jar mcp_server01_client.jar
+```
+
+O cliente iniciará automaticamente o servidor MCP e apresentará
+as ferramentas disponíveis.
+
+O usuário poderá selecionar uma ferramenta pelo número ou nome.
+
+**Comandos disponíveis:**
+
+- `listar`: atualiza a lista de ferramentas;
+- `sair`: encerra o cliente.
+
+Para executar as consultas, as variáveis de ambiente precisam
+estar disponíveis no ambiente do processo Java.
+
+No terminal Bash:
+
+```bash
+export FIGHTERAPI_MMA_KEY="sua_chave_fighterapi"
+export CITOAPI_MMA_KEY="sua_chave_cito"
+```
+
+---
+
+## 8. Executando com MCP Inspector
+
+O projeto possui Dockerfile e compose.yaml para executar
+o MCP Inspector em um contêiner Docker.
+
+Primeiro, certifique-se de que o servidor já foi compilado.
+
+Entre no diretório `mcp-server01` e execute:
+
+```bash
+docker compose up --build -d
+```
+
+Verifique o estado:
+
+```bash
+docker compose ps
+```
+
+Acesse no navegador:
+
+http://127.0.0.1:6274
+
+Na interface do MCP Inspector:
+
+1. Conecte ao servidor Java;
+2. Acesse a seção Tools;
+3. Selecione a ferramenta desejada;
+4. Informe seus parâmetros;
+5. Execute a ferramenta.
+
+Para visualizar os logs:
+
+```bash
+docker compose logs -f
+```
+
+Para encerrar:
+
+```bash
+docker compose down
+```
+
+---
+
+## 9. Integração com Claude Desktop
+
+O servidor também pode ser utilizado por clientes MCP
+compatíveis com transporte STDIO.
+
+Adicione a seguinte configuração à propriedade `mcpServers`
+do arquivo de configuração do Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "mma-mcp": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "/caminho/absoluto/mcp-server01/server/mcp_server01_server.jar"
+      ],
+      "env": {
+        "FIGHTERAPI_MMA_KEY": "sua_chave_fighterapi",
+        "CITOAPI_MMA_KEY": "sua_chave_cito"
+      }
+    }
+  }
+}
+```
+
+Substitua o caminho e as credenciais pelos valores do ambiente
+local.
+
+Após salvar a configuração, reinicie o Claude Desktop.
+
+---
 
 ## 10. Testes
 
@@ -282,6 +474,22 @@ O projeto também mantém as classes auxiliares:
 
 Elas permitem executar consultas diretamente nas APIs,
 utilizando as respectivas variáveis de ambiente.
+
+---
+
+## 11. Considerações
+
+- O transporte utilizado entre o cliente e o servidor é STDIO.
+- O cliente próprio consulta dinamicamente as ferramentas
+  registradas no servidor.
+- As integrações HTTP ficam isoladas nas classes da camada API.
+- As ferramentas MCP não acessam diretamente os endpoints.
+- As credenciais são obtidas por variáveis de ambiente.
+- Os diretórios `target` e `server` são gerados durante o build.
+
+Ao executar novamente o build do servidor, o Maven pode remover
+os artefatos anteriores do diretório `target`. Por isso, gere
+o servidor antes do cliente.
 
 ---
 

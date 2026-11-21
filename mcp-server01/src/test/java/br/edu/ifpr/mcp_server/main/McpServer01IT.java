@@ -1,3 +1,4 @@
+
 package br.edu.ifpr.mcp_server.main;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -7,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -21,183 +23,293 @@ import io.modelcontextprotocol.client.transport.ServerParameters;
 import io.modelcontextprotocol.client.transport.StdioClientTransport;
 import io.modelcontextprotocol.json.jackson3.JacksonMcpJsonMapper;
 
+import io.modelcontextprotocol.spec.McpSchema.CallToolRequest;
+import io.modelcontextprotocol.spec.McpSchema.CallToolResult;
 import io.modelcontextprotocol.spec.McpSchema.ListToolsResult;
+import io.modelcontextprotocol.spec.McpSchema.TextContent;
 import io.modelcontextprotocol.spec.McpSchema.Tool;
 
 import tools.jackson.databind.json.JsonMapper;
 
 class McpServer01IT {
-   private static final Logger LOG =
-                                   LoggerFactory.getLogger(McpServer01IT.class);
-   // nome e caminho para o servidor MCP
-   private static final String SERVER_PATH = "server/mcp_server01_server.jar";
 
-   private static McpSyncClient client;
+    private static final Logger LOG =
+            LoggerFactory.getLogger(McpServer01IT.class);
 
-   @BeforeAll
-   static void setUpBeforeClass() throws Exception {
-      // antes que a classe de testes seja carregada, este método providencia
-      // alguma inicialização ou alocação de recursos, neste caso, o servidor
-      // MCP é executado e o cliente se conecta a ele
-      File serverJar = new File(SERVER_PATH);
-      assertTrue(serverJar.isFile(),"JAR do servidor não encontrado: " +
-                                    serverJar.getAbsolutePath());
+    private static final String SERVER_PATH =
+            "server/mcp_server01_server.jar";
 
-      String           jarPath = serverJar.getAbsolutePath();
-      ServerParameters params  = ServerParameters.builder("java")
-    			                                 .args("-jar",jarPath)
-    			                                 .build();
-      JacksonMcpJsonMapper jsonMapper = new JacksonMcpJsonMapper(
-    			                                              new JsonMapper());
-      StdioClientTransport transport  = new StdioClientTransport(params,
-    			                                                 jsonMapper);
+    private static McpSyncClient client;
 
-      transport.setStdErrorHandler(line -> LOG.info("[SERVER STDERR] " + line));
+    @BeforeAll
+    static void setUpBeforeClass() throws Exception {
 
-      client = McpClient.sync(transport).build();
-      client.initialize();
-   }
+        File serverJar = new File(SERVER_PATH);
 
-   @AfterAll
-   static void tearDownAfterClass() throws Exception {
-      // ao terminar todos os testes, todos os métodos nesta classe foram
-      // executados, o cliente se desconecta do servidor
-      if (client != null)
-         client.closeGracefully();
-   }
+        assertTrue(
+                serverJar.isFile(),
+                "JAR do servidor não encontrado: "
+                        + serverJar.getAbsolutePath()
+        );
 
-   // ==========================================================================
-   // Os métodos de teste à seguir simulam a aplicação cliente:
-   // - há ferramentas (tools) disponíveis???
-   // - a ferramenta 'obter_documento' existe???
-   // - a ferramenta 'obter_documento' executou com sucesso???
-   // ==========================================================================
+        String jarPath = serverJar.getAbsolutePath();
 
-   @Test
-   void deveDisponibilizarFerramentas() {
-      ListToolsResult result = client.listTools();
+        ServerParameters params =
+                ServerParameters.builder("java")
+                        .args("-jar", jarPath)
+                        .build();
 
-      assertNotNull(result,"O servidor não retornou o resultado.");
-      assertNotNull(result.tools(),"A lista de ferramentas não pode ser null.");
-      assertFalse(result.tools().isEmpty(),"O servidor deveria disponibilizar" +
-                                           " pelo menos uma ferramenta." );
-   }
+        JacksonMcpJsonMapper jsonMapper =
+                new JacksonMcpJsonMapper(new JsonMapper());
 
-   @Test
-   void deveDisponibilizarBuscarLutadorComParametroNome() {
+        StdioClientTransport transport =
+                new StdioClientTransport(
+                        params,
+                        jsonMapper
+                );
 
-       ListToolsResult result = client.listTools();
+        transport.setStdErrorHandler(
+                line -> LOG.info("[SERVER STDERR] " + line)
+        );
 
-       Tool tool = result.tools().stream()
-               .filter(item -> "buscar_lutador".equals(item.name()))
-               .findFirst()
-               .orElse(null);
+        client = McpClient.sync(transport).build();
 
-       assertNotNull(
-               tool,
-               "A ferramenta buscar_lutador não foi encontrada."
-       );
+        client.initialize();
+    }
 
-       assertNotNull(
-               tool.description(),
-               "A ferramenta deveria possuir descrição."
-       );
+    @AfterAll
+    static void tearDownAfterClass() throws Exception {
 
-       assertNotNull(
-               tool.inputSchema(),
-               "A ferramenta deveria possuir inputSchema."
-       );
+        if (client != null) {
+            client.closeGracefully();
+        }
+    }
 
-       assertTrue(tool.inputSchema().containsKey("properties"));
+    @Test
+    void deveDisponibilizarFerramentas() {
 
-       assertEquals(
-               List.of("nome"),
-               tool.inputSchema().get("required")
-       );
-}
-       
-       @Test
-       void deveDisponibilizarListarEventos() {
+        ListToolsResult result = client.listTools();
 
-           ListToolsResult result = client.listTools();
+        assertNotNull(
+                result,
+                "O servidor não retornou o resultado."
+        );
 
-           Tool tool = result.tools().stream()
-                   .filter(item -> "listar_eventos".equals(item.name()))
-                   .findFirst()
-                   .orElse(null);
+        assertNotNull(
+                result.tools(),
+                "A lista de ferramentas não pode ser null."
+        );
 
-           assertNotNull(
-                   tool,
-                   "A ferramenta listar_eventos não foi encontrada."
-           );
+        assertEquals(
+                4,
+                result.tools().size(),
+                "O servidor deveria disponibilizar exatamente quatro ferramentas."
+        );
+    }
 
-           assertNotNull(
-                   tool.description(),
-                   "A ferramenta deveria possuir descrição."
-           );
+    @Test
+    void deveDisponibilizarBuscarLutador() {
 
-           assertNotNull(
-                   tool.inputSchema(),
-                   "A ferramenta deveria possuir inputSchema."
-           );
-       }
-       
+        Tool tool = obterFerramenta("buscar_lutador");
 
-      @Test
-      void deveDisponibilizarObterCardEvento() {
-      
-          ListToolsResult result = client.listTools();
-      
-          Tool tool = result.tools().stream()
-                  .filter(item -> "obter_card_evento".equals(item.name()))
-                  .findFirst()
-                  .orElse(null);
-      
-          assertNotNull(
-                  tool,
-                  "A ferramenta obter_card_evento não foi encontrada."
-          );
-      
-          assertNotNull(tool.description());
-          assertNotNull(tool.inputSchema());
-      
-          assertTrue(
-                  tool.inputSchema().containsKey("properties")
-          );
-      
-          assertEquals(
-                  List.of("evento_id_ou_slug"),
-                  tool.inputSchema().get("required")
-          );
-      }
-      
-      @Test
-      void deveDisponibilizarObterHistoricoLutas() {
+        assertNotNull(tool);
+        assertNotNull(tool.description());
+        assertNotNull(tool.inputSchema());
 
-          ListToolsResult result = client.listTools();
+        assertTrue(tool.inputSchema().containsKey("properties"));
 
-          Tool tool = result.tools().stream()
-                  .filter(item ->
-                          "obter_historico_lutas".equals(item.name())
-                  )
-                  .findFirst()
-                  .orElse(null);
+        assertEquals(
+                List.of("nome"),
+                tool.inputSchema().get("required")
+        );
+    }
 
-          assertNotNull(
-                  tool,
-                  "A ferramenta obter_historico_lutas não foi encontrada."
-          );
+    @Test
+    void deveDisponibilizarListarEventos() {
 
-          assertNotNull(tool.description());
-          assertNotNull(tool.inputSchema());
+        Tool tool = obterFerramenta("listar_eventos");
 
-          assertTrue(
-                  tool.inputSchema().containsKey("properties")
-          );
+        assertNotNull(tool);
+        assertNotNull(tool.description());
+        assertNotNull(tool.inputSchema());
 
-          assertEquals(
-                  List.of("fighter_id"),
-                  tool.inputSchema().get("required")
-          );
-      }
+        assertTrue(tool.inputSchema().containsKey("properties"));
+    }
+
+    @Test
+    void deveDisponibilizarObterCardEvento() {
+
+        Tool tool = obterFerramenta("obter_card_evento");
+
+        assertNotNull(tool);
+        assertNotNull(tool.description());
+        assertNotNull(tool.inputSchema());
+
+        assertTrue(tool.inputSchema().containsKey("properties"));
+
+        assertEquals(
+                List.of("evento_id_ou_slug"),
+                tool.inputSchema().get("required")
+        );
+    }
+
+    @Test
+    void deveDisponibilizarObterHistoricoLutas() {
+
+        Tool tool = obterFerramenta("obter_historico_lutas");
+
+        assertNotNull(tool);
+        assertNotNull(tool.description());
+        assertNotNull(tool.inputSchema());
+
+        assertTrue(tool.inputSchema().containsKey("properties"));
+
+        assertEquals(
+                List.of("fighter_id"),
+                tool.inputSchema().get("required")
+        );
+    }
+
+    @Test
+    void deveExecutarBuscarLutadorPeloMcp() {
+
+        CallToolResult result = executarFerramenta(
+                "buscar_lutador",
+                Map.of("nome", " ")
+        );
+
+        String message = obterTexto(result);
+
+        assertTrue(
+                Boolean.TRUE.equals(result.isError()),
+                "A ferramenta deveria rejeitar um nome vazio."
+        );
+
+        assertTrue(
+                message.contains("nome do lutador"),
+                "A resposta deveria informar que o nome é inválido."
+        );
+    }
+
+
+	@Test
+	void deveExecutarListarEventosPeloMcp() {
+	
+	    CallToolResult result = executarFerramenta(
+	            "listar_eventos",
+	            Map.of(
+	                    "pagina", 0,
+	                    "limite", 10
+	            )
+	    );
+	
+	    assertNotNull(
+	            result,
+	            "O servidor deveria retornar uma resposta."
+	    );
+	
+	    assertTrue(
+	            Boolean.TRUE.equals(result.isError()),
+	            "A ferramenta deveria rejeitar uma página inválida."
+	    );
+	
+	    String message = obterTexto(result);
+	
+	    assertFalse(
+	            message.isBlank(),
+	            "O servidor deveria informar o motivo da rejeição."
+	    );
+	}
+
+    @Test
+    void deveExecutarObterCardEventoPeloMcp() {
+
+        CallToolResult result = executarFerramenta(
+                "obter_card_evento",
+                Map.of("evento_id_ou_slug", " ")
+        );
+
+        String message = obterTexto(result);
+
+        assertTrue(
+                Boolean.TRUE.equals(result.isError()),
+                "A ferramenta deveria rejeitar um identificador vazio."
+        );
+
+        assertTrue(
+                message.contains("evento_id_ou_slug"),
+                "A resposta deveria identificar o parâmetro inválido."
+        );
+    }
+
+    @Test
+    void deveExecutarObterHistoricoLutasPeloMcp() {
+
+        CallToolResult result = executarFerramenta(
+                "obter_historico_lutas",
+                Map.of("fighter_id", " ")
+        );
+
+        String message = obterTexto(result);
+
+        assertTrue(
+                Boolean.TRUE.equals(result.isError()),
+                "A ferramenta deveria rejeitar um identificador vazio."
+        );
+
+        assertTrue(
+                message.contains("fighter_id"),
+                "A resposta deveria identificar o parâmetro inválido."
+        );
+    }
+
+    private Tool obterFerramenta(String nome) {
+
+        ListToolsResult result = client.listTools();
+
+        assertNotNull(result);
+        assertNotNull(result.tools());
+
+        return result.tools().stream()
+                .filter(tool -> nome.equals(tool.name()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private CallToolResult executarFerramenta(
+            String nome,
+            Map<String, Object> argumentos) {
+
+        CallToolRequest request =
+                CallToolRequest.builder(nome)
+                        .arguments(argumentos)
+                        .build();
+
+        return client.callTool(request);
+    }
+
+    private String obterTexto(CallToolResult result) {
+
+        assertNotNull(
+                result,
+                "O servidor não retornou uma resposta."
+        );
+
+        assertNotNull(
+                result.content(),
+                "A resposta não possui conteúdo."
+        );
+
+        assertFalse(
+                result.content().isEmpty(),
+                "A resposta deveria possuir pelo menos um conteúdo."
+        );
+
+        return result.content().stream()
+                .filter(TextContent.class::isInstance)
+                .map(TextContent.class::cast)
+                .map(TextContent::text)
+                .findFirst()
+                .orElse("");
+    }
 }
